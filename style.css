@@ -1,0 +1,224 @@
+/* =====================================================================
+   Student Coding Club — Stylesheet
+   Web Programming Assignment: CSS Flexbox and CSS Grid
+   ===================================================================== */
+
+/* ---- Base / reset ---- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f4f5f7;
+}
+
+/* =====================================================================
+   PART A — Header & Navigation (Flexbox)
+   Club name on the left, nav links on the right using Flexbox.
+   ===================================================================== */
+.header {
+  display: flex;                 /* Flexbox */
+  justify-content: space-between;/* name left, links right */
+  align-items: center;
+  flex-wrap: wrap;
+  background: #111827;
+  color: #fff;
+  padding: 16px 24px;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.nav {
+  display: flex;                 /* horizontal alignment of links */
+  gap: 24px;
+}
+
+.nav a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.nav a:hover {
+  color: #818cf8;
+}
+
+/* ---- Hero ---- */
+.hero {
+  text-align: center;
+  padding: 60px 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+}
+
+.hero h1 {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  opacity: 0.95;
+}
+
+/* ---- Generic section ---- */
+.section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 1.8rem;
+  margin-bottom: 32px;
+  color: #111827;
+}
+
+/* =====================================================================
+   PART B — Event Cards (Flexbox)
+   Six cards that wrap automatically, equal spacing, hover effect.
+   ===================================================================== */
+.cards {
+  display: flex;                 /* Flexbox */
+  flex-wrap: wrap;               /* cards wrap automatically */
+  gap: 24px;                     /* equal spacing */
+  justify-content: center;
+}
+
+.card {
+  flex: 1 1 280px;               /* grow/shrink, min width 280px */
+  max-width: 320px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {                    /* hover effect */
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Placeholder "image" built with a CSS gradient (self-contained) */
+.card-img {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+}
+
+.card-body {
+  padding: 18px;
+  text-align: center;
+}
+
+.card-name {
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+}
+
+.card-date {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+}
+
+.btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn:hover {
+  background: #4f46e5;
+}
+
+/* =====================================================================
+   PART C — Gallery Section (CSS Grid)
+   Desktop: 3 columns, Tablet: 2 columns, Mobile: 1 column, 10px gap.
+   ===================================================================== */
+.gallery {
+  display: grid;                          /* CSS Grid */
+  grid-template-columns: repeat(3, 1fr);  /* Desktop: 3 columns */
+  gap: 10px;                              /* required 10px gap */
+}
+
+.gallery-item {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 600;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+}
+
+/* =====================================================================
+   PART D — Footer
+   Centered copyright text with a background color.
+   ===================================================================== */
+.footer {
+  text-align: center;
+  background: #111827;
+  color: #e5e7eb;
+  padding: 24px 16px;
+  margin-top: 32px;
+}
+
+/* =====================================================================
+   RESPONSIVE BREAKPOINTS
+   ===================================================================== */
+
+/* Tablet: gallery becomes 2 columns */
+@media (max-width: 992px) {
+  .gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Below 768px: nav links stack vertically (Part A requirement),
+   gallery becomes a single column (Part C requirement). */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .nav {
+    flex-direction: column;   /* links stack vertically */
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gallery {
+    grid-template-columns: 1fr;  /* Mobile: 1 column */
+  }
+
+  .hero h1 {
+    font-size: 1.6rem;
+  }
+}
