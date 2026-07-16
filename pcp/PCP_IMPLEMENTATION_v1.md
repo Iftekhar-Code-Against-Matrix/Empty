@@ -1,5 +1,5 @@
 # PCP v1 — Implementation Plan
-> Companion to `PCP_RESEARCH_v1.md` · FINAL v1.1 · 2026-07-16
+> Companion to `PCP_RESEARCH_v1.md` · FINAL v1.2 · 2026-07-16
 > Everything here is scoped to the 4-week research build. Product/hosted concerns end at "local MCP server."
 
 ---
@@ -18,6 +18,7 @@
 | D8 | MCP server (`recall`/`remember`, stdio) | Works from Claude Code/Desktop against the local store |
 | D9 | Write-up + scaling curve (1×/10×/100×) | Plots (headline = accuracy-vs-cost Pareto) + limitations drafted |
 | D10 | Temporal-checkout replay + write-path failure decomposition | As-of-session-k replay runs; every miss bucketed write/route/nav |
+| D11 | **HEADLINE: PersonaMem-v2 run** (PCP + Baseline 1 + frontier long-context reference) | First external-memory-system number on implicit personalization; MCQ + open-ended, text-only subset |
 
 ---
 
@@ -49,6 +50,7 @@ pcp/
       harness.py            # ONE harness: fixed reader model, fixed answer prompt, seeds
       ingest_longmemeval.py # mechanical replay: append+commit per MESSAGE; async distillation
       ingest_locomo.py
+    ingest_personamem.py  # HEADLINE: HF bowen-upenn/PersonaMem-v2, text-only subset first
       baselines/
         b1_vector_rag.py    # Mem0-OSS style
         b2_flatfs.py        # ByteRover-style: tree, no router, no git tools
@@ -88,7 +90,8 @@ pcp/
 5. Validate router throughput on real hardware — record the measured tok/s; stop quoting 1000–1200 until this exists.
 6. **Temporal-checkout replay (D10):** for a subset of knowledge-update questions, `git checkout` the store as-of-session-k for several k and verify the answer evolves correctly with knowledge state. This is an eval mode no baseline can run — plot answer-correctness vs k.
 
-### Week 3 — Real archive + optional SFT
+### Week 3 — HEADLINE run + real archive (+ optional SFT)
+0. **PersonaMem-v2 (D11), first priority:** ingest (text-only subset first), run PCP + Baseline 1 + a frontier long-context reference under the fixed harness, MCQ then open-ended. Targets from the paper: frontier 37–48%; their trained Qwen3-4B 55.2 MCQ / 60.7 open. Beating frontier prompted = the headline; approaching their trained 4B = the knockout. Expect the write path (implicit-preference distillation) to be where the work is — iterate writer prompts here, not the retriever.
 1. Labeling protocol (D7): export personal archive → ingest; self-author ~100+ QA pairs across splits (incl. update chains and true-absence questions); contamination rule: question author ≠ answer verifier session; document everything (this protocol is a mini-contribution).
 2. Run PCP + Baselines 1/3 on the archive.
 3. *Only if week-2 plateaued:* Phase-2 trace distillation (strong model traces → filter to successes → SFT 4B via LoRA; train on LoCoMo-derived traces, test LongMemEval zero-shot).
@@ -117,7 +120,8 @@ pcp/
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Primary benchmark | LongMemEval (original), _S size | V2 is web-agent trajectories — wrong domain (research doc §3.1) |
+| Headline benchmark | **PersonaMem-v2** | Personal context IS the identity; empty memory-system leaderboard; 37–48% frontier ceiling; their own trained-4B result validates the small-orchestrator thesis (v1.2) |
+| Rigor/mechanism benchmark | LongMemEval (`longmemeval-cleaned`), _S size | Splits + published controlled baselines for the mechanism claims; git result reported on the labeled update-chain C-subset with tokens/query (v1.2; Day-0 pilot). LME-V2 is web-agent trajectories — wrong domain |
 | Comparison method | Self-reproduced baselines, one fixed harness | Vendor self-reports uncontrolled; harness dominates (research doc §4.4) |
 | Zep comparison | Published per-split numbers as reference; reproduce Graphiti only if budget allows | Full reproduction is heavy infra; the honest caveat is acceptable |
 | Orchestrator | Qwen3-4B first, prompted | Phase-1 de-risking before any training |

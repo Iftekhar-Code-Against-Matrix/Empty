@@ -2,10 +2,11 @@
 ### Finalized v1 research doc
 ### A deep, orchestrated, agentic memory engine over a versioned personal wiki — served over MCP
 
-> **Status:** FINAL v1.1 (supersedes idea doc v0.3) · **Owner:** Iftekhar · **Date:** 2026-07-16
+> **Status:** FINAL v1.2 (supersedes idea doc v0.3) · **Owner:** Iftekhar · **Date:** 2026-07-16
 > **Audience:** PhD advisor + team + AI collaborators picking this up cold.
 > **v1.0 changes (vs v0.3):** benchmark decision corrected and finalized (LongMemEval-V2 **dropped as primary** — it is a *web-agent trajectory* benchmark, not chat memory; original LongMemEval is primary); competitor analysis (DiffMem) completed with verified facts and leaderboard standing; "leaderboard reality" section added (vendor self-reports vs controlled comparisons — this reshapes how Claim 1 is judged); drawbacks-of-git-versioned section made explicit; methodology guardrails hardened (fixed reader model, self-reproduced baselines); sanity-check verdict recorded; implementation steps split into `PCP_IMPLEMENTATION_v1.md`.
 > **v1.1 changes (discussion round, same day):** commit granularity corrected — **real-time, one commit per message** (not per session); **temporal checkout** added as a claimed capability and eval mode (§2.1); write path elevated to first-class — *writing = the index* — with failure decomposition metrics (§5.5); abstention upgraded to calibrated selective prediction; headline framing = accuracy-vs-cost **Pareto frontier**; router made escapable with hit-rate as a first-class metric; usefulness thermometer **cut from v1** (parked with Phase 3).
+> **v1.2 changes (positioning round, same day):** **PersonaMem-v2 promoted to headline benchmark** — PCP's identity is *personal context*, and the headline claim (§5.0) is now the first external-memory-system measurement on implicit personalization; LongMemEval demoted to the rigor/mechanism layer (git C-subset + abstention calibration as ablation-level proof points, per the Day-0 pilot in `pilot/`); git reframed as plumbing we *prove* works, not the identity we defend.
 
 ---
 
@@ -21,7 +22,7 @@ PCP is a **personal memory layer for LLMs**. Everything the user has ever told a
 - **Time travel is free:** memory is written in real time — every message is a commit — so the store can be checked out *as of any past moment* (§2.1): an eval superpower (point-in-time replay) and a user feature ("answer as I knew it in March").
 - **Served as an MCP server** (local/self-hosted): `recall(context)` / `remember(note)` — any host model plugs in.
 
-**What we claim:** not a new storage mechanism (filesystem memory, small-model routing, and git-backed stores all exist — §4). We claim **two specific measured contributions** nobody has produced (§5), on a **testbed nobody has** (a real multi-year personal archive), under a **controlled harness nobody in this space uses** (§5.4 — the field runs on vendor self-reports).
+**What we claim (v1.2):** not a new storage mechanism (filesystem memory, small-model routing, and git-backed stores all exist — §4). We claim **one headline measurement** — the first external memory system evaluated on implicit personalization (PersonaMem-v2, where frontier LLMs score 37–48% — §5.0) — plus **two mechanism claims** nobody has measured (§5.1–5.2), on a **testbed nobody has** (a real multi-year personal archive), under a **controlled harness nobody in this space uses** (§5.4 — the field runs on vendor self-reports).
 
 ---
 
@@ -96,11 +97,12 @@ v0.3 listed "LongMemEval / -V2" as primary. **This was wrong and is fixed here.*
 
 - **Consequence for PCP:** V2 is *out of scope for v1* but is flagged as **future work** — PCP's navigate-a-filesystem design is exactly the shape of V2's best baseline (a file-based agent), so an eventual "PCP for agent experience" extension is natural. Do not chase it now.
 
-### 3.2 Final benchmark stack
+### 3.2 Final benchmark stack (restructured in v1.2)
 
 | Role | Benchmark | Why | Status of field |
 |---|---|---|---|
-| **Primary** | **LongMemEval (original, ICLR 2025, arXiv 2410.10813)** — LongMemEval_S (~115k tokens, ~40 sessions/user, 500 questions) | The only widely-used benchmark with the splits our claims live on: **temporal-reasoning, knowledge-update, abstention**, plus single-session-*, preference, multi-session | Headroom is real on the hard splits (Zep gpt-4o temporal: 62.4%); vendor self-reports of 94–95% overall exist but are uncontrolled (§5.4) |
+| **HEADLINE** | **PersonaMem-v2** (arXiv 2512.06688; HF `bowen-upenn/PersonaMem-v2`) — 1,000 personas, 20k+ implicit preferences, 300+ scenarios, multi-session, up to 128k tokens; MCQ + open-ended | This *is* personal context — implicit preferences revealed over long histories, the exact regime PCP is for. **Massive headroom:** frontier LLMs (GPT-5-class) score **37–48%**. Their own trained Qwen3-4B agentic-memory model (55.2 MCQ / 60.7 open) *beats GPT-5 long-context* — independent validation of the small-orchestrator thesis | **No external memory system (Mem0, Zep, anyone) has published a number.** First-mover measurement, on the headline axis |
+| **Rigor / mechanism layer** | **LongMemEval (original, ICLR 2025, arXiv 2410.10813)** — pin the **`longmemeval-cleaned`** HF release | The splits the *mechanism* claims live on: knowledge-update **C-subset** (per the Day-0 pilot: ~3–4% of questions are genuinely history-required — reported per-bucket, with tokens/query), **abstention** (calibration), temporal (won by dates in notes). Baselines with published controlled numbers exist here (Zep) | Vendor self-reports of 94–95% are uncontrolled (§5.4); Zep gpt-4o temporal 62.4% is the honest reference |
 | **Secondary** | **LoCoMo** | Lingua franca; legibility with reviewers | Near-saturated (ByteRover 96.1% SOTA; Mem0 92.5; single-session categories 96–99). Not where the win lives — report it, don't optimize for it |
 | **Distinguishing** | **Real personal archive** (ours) | The ownable data nobody else has; requires the labeling protocol (§7) to be a finding rather than a demo | Unique to us |
 | **Stretch (optional, week 4+)** | **BEAM** (scale: scores collapse 64.1→48.6 from 1M→10M tokens; temporal hardest category) or **MemoryArena** (active memory use: LoCoMo-saturated systems drop to 40–60%) | If time allows, one scale or one agentic-use datapoint inoculates against "you only measured passive recall" | Emerging; do not block v1 on these |
@@ -162,14 +164,22 @@ The public "leaderboard" for LongMemEval is **not a controlled comparison**:
 
 ---
 
-## 5. The two measured claims (finalized wording)
+## 5. The measured claims (restructured in v1.2: one headline + two mechanism claims)
 
-### Claim 1 — Version-history navigation as the temporal layer 🏆
+### Claim 0 (HEADLINE) — A Personal Context Protocol, measured on personal context 🏆
+- **The identity claim:** PCP is a personal context layer; it gets judged on a *personal context* benchmark, not a generic recall benchmark.
+- **Exists:** PersonaMem-v2 shows frontier long-context LLMs manage only 37–48% on implicit personalization, and that a *trained* Qwen3-4B with agentic memory beats GPT-5 long-context — the small-model-with-memory thesis is independently validated.
+- **Does NOT exist:** any external memory system (Mem0, Zep, Letta, anything) has published a PersonaMem-v2 number. The personalization leaderboard for memory systems is empty.
+- **Falsifiable claim:** *"A prompted, off-the-shelf PCP stack (tiny router + 4B navigator over a versioned personal wiki) with a fixed reader model beats frontier long-context on PersonaMem-v2 and is competitive with their trained end-to-end 4B — while being model-agnostic, private, and auditable."* Their trained 4B cannot serve other models; PCP serves any host over MCP.
+- **Note the fit:** implicit-preference inference stresses the **write path** (distilling unstated preferences into wiki nodes) — exactly where §5.5 says the results are decided. The headline benchmark and the write-path investment point the same direction.
+
+### Claim 1 (mechanism) — Version-history navigation as the temporal layer
 - **Exists:** DiffMem proves buildability (production, 896★). Zep proves temporal *structure* beats embeddings (+18.5% relative on LongMemEval; temporal split 62.4% gpt-4o) — via a temporal KG.
 - **Does NOT exist:** any benchmark number for the git approach (verified §4.2).
 - **Falsifiable claim:** *"A versioned filesystem plus a small agent that reads history matches temporal-KG performance on the temporal and knowledge-update splits, at a fraction of the infrastructure, under an identical harness."* If false, that's still publishable (KGs earn their complexity).
+- **Scoped by the Day-0 pilot (v1.2):** only ~3–4% of LongMemEval questions are genuinely history-required, so this claim is reported on the hand-labeled **update-chain (C) subset** with **tokens/query** as the co-equal metric (the old value is always recoverable from raw `chats/` — git makes it *cheap*). Git is plumbing we prove works, not the identity we defend; if the ablation is null, PCP loses nothing — the headline claim doesn't depend on it.
 
-### Claim 2 — Navigation-grounded abstention
+### Claim 2 (mechanism) — Navigation-grounded abstention
 - **Exists:** LongMemEval scores abstention; *Learning When to Remember* (arXiv 2604.27283) does abstention-aware injection via bandit (must-cite).
 - **Does NOT exist:** abstention as **calibrated proof-of-absence from navigation traces** (coverage of routed candidates, subtrees visited, greps issued) rather than a similarity threshold.
 - Scored on LongMemEval's abstention questions; vector-RAG Baseline 1 structurally cannot compete (a low cosine score is not evidence of absence).
@@ -246,6 +256,7 @@ Without this decomposition, week-2 results are un-debuggable and a bad tree make
 6. **Additions in v1:** leaderboard-reality section; fixed-harness guardrail; drawbacks table (§4.3); optional BEAM/MemoryArena stretch; V2 flagged as future work for an agentic-experience extension.
 7. **Subtractions in v1:** LongMemEval-V2 as primary (wrong domain); comparing directly against vendor self-reported numbers; **(v1.1)** usefulness thermometer cut from the assist set (own prior work showed ≈ similarity; parked with Phase 3 as the write gate). Optical substrate stays deferred, Phase 3 stays parked.
 8. **v1.1 additions:** temporal checkout (§2.1) as claimed capability + eval mode; write-path failure decomposition (§5.5); calibrated selective-prediction methodology for Claim 2; Pareto-frontier headline framing; per-message real-time commits; escapable router with hit-rate metric.
+9. **v1.2 repositioning:** the project's identity is *personal context*, and the headline now matches it — PersonaMem-v2 (empty memory-system leaderboard, 37–48% frontier ceiling, and its own paper independently validates the 4B-with-memory-beats-GPT-5 thesis). LongMemEval becomes the rigor/mechanism layer; the git result is scoped to the update-chain C-subset per the Day-0 pilot and no longer carries the story. This removes v1's biggest optics risk (item 4 above) entirely: on the headline benchmark there are no vendor numbers to be compared against.
 
 ---
 
