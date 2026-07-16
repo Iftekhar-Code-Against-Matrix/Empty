@@ -72,6 +72,16 @@ pcp/
 
 ---
 
+## 1.5 FIRST WEEKEND (time-boxed, one deliverable)
+
+**Deliverable: a trustworthy Baseline-1 (vector RAG) number on LongMemEval, per split, under the fixed harness.** Nothing else. Benchmark priority overall: ① LongMemEval (industry standard — every vendor and paper reports here; validates the pipeline against known numbers) ② PersonaMem-v2 (headline, week 3) ③ LoCoMo (checkbox, run once at the end).
+
+- **Sat AM:** scaffold + harness core — `longmemeval-cleaned` downloaded, reader model pinned in `configs/harness.yaml`, official eval prompt wired, tokens+latency logged. Smoke-test 20 questions.
+- **Sat PM:** mechanical ingestion → git store (per-message raw commits). Builds store format + ingestion path in one move.
+- **Sun:** Baseline 1 end-to-end on a seeded 50-question stratified dev subset → full 500 only if time/budget allows.
+- **Sun stretch (only if baseline done):** prompted 4B navigates the store on 20 questions; keep the traces.
+- **NOT this weekend:** router, abstention, MCP, PersonaMem ingestion, LoCoMo. Labeling CSV = weeknight reading task.
+
 ## 2. Week-by-week
 
 ### Week 1 — Harness + baselines (the hard gate)
