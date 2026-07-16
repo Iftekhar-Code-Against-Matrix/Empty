@@ -1,0 +1,234 @@
+# PCP — Personal Context Protocol
+### Finalized v1 research doc
+### A deep, orchestrated, agentic memory engine over a versioned personal wiki — served over MCP
+
+> **Status:** FINAL v1.0 (supersedes idea doc v0.3) · **Owner:** Iftekhar · **Date:** 2026-07-16
+> **Audience:** PhD advisor + team + AI collaborators picking this up cold.
+> **v1.0 changes (vs v0.3):** benchmark decision corrected and finalized (LongMemEval-V2 **dropped as primary** — it is a *web-agent trajectory* benchmark, not chat memory; original LongMemEval is primary); competitor analysis (DiffMem) completed with verified facts and leaderboard standing; "leaderboard reality" section added (vendor self-reports vs controlled comparisons — this reshapes how Claim 1 is judged); drawbacks-of-git-versioned section made explicit; methodology guardrails hardened (fixed reader model, self-reproduced baselines); sanity-check verdict recorded; implementation steps split into `PCP_IMPLEMENTATION_v1.md`.
+
+---
+
+## 0. TL;DR (read this first)
+
+PCP is a **personal memory layer for LLMs**. Everything the user has ever told an AI lives in a **git-versioned, human-readable wiki** (an Obsidian-compatible vault of markdown files). Retrieval is not a vector lookup — it is a **two-stage orchestrated process**:
+
+1. A **fast router** (tiny model, target ~1000–1200 tok/s — a target to validate, not a spec) instantly picks *where in the tree to look*.
+2. A **small orchestrator (4B)** then **navigates agentically** — `ls`, `grep`, `cat`, and `git log`/`git diff` — until it has the precise memories that matter, or has *verified* that nothing exists.
+
+- **Space** is indexed by the directory tree; **time** is indexed by git history — no temporal knowledge graph needed.
+- **Compression is reversible:** every episodic memory carries a provenance link to the raw chat transcript it was distilled from.
+- **Served as an MCP server** (local/self-hosted): `recall(context)` / `remember(note)` — any host model plugs in.
+
+**What we claim:** not a new storage mechanism (filesystem memory, small-model routing, and git-backed stores all exist — §4). We claim **two specific measured contributions** nobody has produced (§5), on a **testbed nobody has** (a real multi-year personal archive), under a **controlled harness nobody in this space uses** (§5.4 — the field runs on vendor self-reports).
+
+---
+
+## 1. The problem (unchanged from v0.3, condensed)
+
+LLMs have amnesia; the industry fix is extract → embed → cosine-retrieve (RAG). On personal context this has four documented structural failures, each of which maps to a PCP mechanism:
+
+| # | RAG failure | Evidence | PCP answer |
+|---|---|---|---|
+| 1 | **Aggregation** — can't combine facts spread across sessions | Mem0 paper (ECAI 2025) | Topic tree + agentic traversal |
+| 2 | **Temporal reasoning / updates** — returns stale chunks | Zep built a temporal KG precisely for this (arXiv 2501.13956) | **Version control**: files = now; `git log`/`diff` = how it got there |
+| 3 | **Lossy compression** — summaries with no way back | *Verbatim Chunks Beat Extracted Artifacts* (arXiv 2601.00821) | **Provenance links** episodic note → raw transcript |
+| 4 | **No abstention** — always returns *something* | LongMemEval abstention split | **Verified absence** from navigation traces |
+
+**Our bet:** the fix isn't a better retriever — it's a better **organization + navigation** layer.
+
+---
+
+## 2. Architecture (finalized — carried from v0.3 unchanged)
+
+```
+ flat context (current conversation)
+        │
+        ▼
+ ┌──────────────────────────────────────────────────────────┐
+ │ (1) FAST ROUTER — tiny model (≤1B class)                  │
+ │     "which subtree(s) of the wiki are relevant?"          │
+ │     assisted by: ANN (dense) + BM25 indexes over nodes    │
+ └──────────────────────────┬───────────────────────────────┘
+                            ▼
+ ┌──────────────────────────────────────────────────────────┐
+ │ (2) ORCHESTRATOR — 4B model (Qwen3-4B / Gemma-3-4B)       │
+ │     agentic loop over the selected subtree(s):            │
+ │       ls → grep → cat → git log → git diff → (repeat)     │
+ │     assist signals it MAY consult: ANN, BM25, thermometer │
+ │     provenance drill-down: episodic note → raw transcript │
+ └──────────────────────────┬───────────────────────────────┘
+                            ▼
+ (3) compact memory package — or verified abstention
+        │
+        ▼  served over MCP (recall / remember)
+      any host model
+
+ ┌────────────── THE STORE (one git repo, one Obsidian vault) ──────────────┐
+ │  wiki/    ← episodic + semantic memory nodes (topic directory tree)      │
+ │  chats/   ← RAW LAYER: full transcripts, append-only, provenance targets │
+ │  every update = a git commit  →  history IS the temporal index           │
+ └───────────────────────────────────────────────────────────────────────────┘
+```
+
+Ten layers as in v0.3 §2 (raw layer, wiki layer, provenance, git engine, router, agentic retriever, abstention, write path, MCP, deferred optical substrate). The three walkthroughs (spatial / temporal / provenance drill-down) carry over verbatim from v0.3 §3. No architectural changes in v1 — the architecture was already right; what v1 fixes is the *measurement plan around it*.
+
+---
+
+## 3. FINAL benchmark decision (corrects v0.3)
+
+### 3.1 The correction: LongMemEval-V2 is NOT our benchmark
+
+v0.3 listed "LongMemEval / -V2" as primary. **This was wrong and is fixed here.** Verified against the paper (arXiv 2605.12493, May 2026): **LongMemEval-V2 evaluates *web-agent trajectory* memory** — 451 questions over 100–500 WebArena/WorkArena trajectories (25M–115M tokens), testing static state recall, dynamic state tracking, workflow knowledge, environment gotchas, and premise awareness. It is about agents becoming "experienced colleagues in specialized environments." It is **not** user-assistant chat memory, and its top baselines are coding-agent-style systems (AgentRunbook-C, 72.5%).
+
+- **Consequence for PCP:** V2 is *out of scope for v1* but is flagged as **future work** — PCP's navigate-a-filesystem design is exactly the shape of V2's best baseline (a file-based agent), so an eventual "PCP for agent experience" extension is natural. Do not chase it now.
+
+### 3.2 Final benchmark stack
+
+| Role | Benchmark | Why | Status of field |
+|---|---|---|---|
+| **Primary** | **LongMemEval (original, ICLR 2025, arXiv 2410.10813)** — LongMemEval_S (~115k tokens, ~40 sessions/user, 500 questions) | The only widely-used benchmark with the splits our claims live on: **temporal-reasoning, knowledge-update, abstention**, plus single-session-*, preference, multi-session | Headroom is real on the hard splits (Zep gpt-4o temporal: 62.4%); vendor self-reports of 94–95% overall exist but are uncontrolled (§5.4) |
+| **Secondary** | **LoCoMo** | Lingua franca; legibility with reviewers | Near-saturated (ByteRover 96.1% SOTA; Mem0 92.5; single-session categories 96–99). Not where the win lives — report it, don't optimize for it |
+| **Distinguishing** | **Real personal archive** (ours) | The ownable data nobody else has; requires the labeling protocol (§7) to be a finding rather than a demo | Unique to us |
+| **Stretch (optional, week 4+)** | **BEAM** (scale: scores collapse 64.1→48.6 from 1M→10M tokens; temporal hardest category) or **MemoryArena** (active memory use: LoCoMo-saturated systems drop to 40–60%) | If time allows, one scale or one agentic-use datapoint inoculates against "you only measured passive recall" | Emerging; do not block v1 on these |
+
+**Metrics (unchanged):** per-split QA accuracy, tokens/query, end-to-end latency (router + loop). The win lives in **temporal / update / abstention**.
+
+---
+
+## 4. The git-versioned competitor: DiffMem — full analysis
+
+### 4.1 What it is (verified 2026-07-16)
+
+**DiffMem** (github.com/Growth-Kinetics/DiffMem, **896★**, production — powers "Annabelle," a persistent-memory companion on WhatsApp/Messenger):
+
+- Git + markdown store; files hold only the **"now" view**; git diffs/logs hold evolution — *the same core bet as PCP's temporal layer.*
+- Three agents: **Writer** (transcript → staged git updates), **Retrieval** (shells out to `grep`, `git log`, `git diff`, `git blame` — "no vector databases, no embeddings, no BM25 — just git and an LLM"), **Consolidator** (out-of-band dedupe/redistribute/link).
+- Runs on **OpenRouter, GPT-4o-class models**; the README itself states smaller models produce materially worse entity linking and temporal reasoning.
+
+### 4.2 Where it stands on the leaderboard: **nowhere**
+
+This is the central competitive fact, now verified from three independent angles:
+
+1. The DiffMem repo reports **no LoCoMo and no LongMemEval numbers** — none in README or docs.
+2. The public LongMemEval leaderboard (omegamax.co/benchmarks) lists OMEGA (95.4%), Mastra (94.87%), Emergence AI (86%), Zep/Graphiti (71.2%), with Mem0/Letta/others at N/A — **DiffMem does not appear at all**.
+3. Mem0's "State of AI Agent Memory 2026" survey of the field **does not mention DiffMem, ByteRover, or any git/filesystem-based system** — the entire git-versioned approach is invisible in the benchmark discourse.
+
+**So: our closest overall prior has zero measured standing.** The mechanism exists in production; the measurement does not exist anywhere. That is precisely the gap PCP's Claim 1 fills, and it is why "measure, don't invent" survives review.
+
+### 4.3 Drawbacks of the git-versioned approach (DiffMem's and, honestly, ours)
+
+These are the weaknesses we must engineer around and *report*, not hide:
+
+| # | Drawback | Who it bites | PCP mitigation |
+|---|---|---|---|
+| 1 | **Write latency.** DiffMem documents 60–600s per write (LLM + git I/O). Commit-on-every-write is expensive. | Both | Write path is async/at-session-end by design; batch commits; report write latency as a metric |
+| 2 | **Big-model dependence.** DiffMem needs GPT-4o-class for usable entity linking/temporal reasoning — no small-model story. | DiffMem | The router + 4B-orchestrator cascade **is our delta**; if 4B fails multi-hop, fall back 7–8B (risk §7) |
+| 3 | **Lexical-only retrieval.** Pure grep fails on paraphrase/topical queries; *Is Grep All You Need* (arXiv 2605.15184) confirms vectors win when queries are genuinely paraphrased or the corpus outgrows linear scan. | DiffMem | PCP keeps ANN+BM25 as **assist signals** — hybrid, each ablatable |
+| 4 | **History doesn't survive reorganization cheaply.** `git log --follow` survives renames; **grep-over-history does not**; knowledge linting = renames. | Both | Linting policy: prefer edits over moves; test rename-survival explicitly (risk §7) |
+| 5 | **Repo growth.** Append-only transcripts + full history grow unboundedly; `git log` over a large repo slows. | Both | Scaling curve is a deliverable (1×/10×/100× nodes, week 4); shallow-clone/pack strategies if needed |
+| 6 | **No proof it's better.** Without benchmark numbers the whole approach is a plausibility argument. | DiffMem (fatal for a paper) | **The entire point of PCP v1** |
+| 7 | **No abstention, no router, no MCP, no provenance drill-down** in DiffMem. | DiffMem | These four are exactly PCP's additions; DiffMem-style config runs as **Baseline 3** to isolate them |
+| 8 | **Security surface.** A retrieval agent shelling out to `grep`/`git` must be sandboxed (path traversal, command injection via query strings). | Both | Tool layer is a whitelisted, arg-sanitized wrapper — never raw shell (implementation doc §3) |
+| 9 | **Concurrency.** One git repo, one writer; concurrent sessions can race. | Both | v1 is single-user/single-writer by scope; serialize commits via a write queue |
+
+### 4.4 Leaderboard reality check (new section — reshapes Claim 1)
+
+The public "leaderboard" for LongMemEval is **not a controlled comparison**:
+
+- Top numbers (OMEGA 95.4, Mastra 94.87, Mem0 94.4) are **vendor self-reports** with different reader models, harnesses, and question subsets; several major systems publish nothing (N/A). Community critique ("benchmark theatre") documents that reported numbers are unstable and prone to silent revision.
+- The only *peer-reviewed, per-split, baseline-controlled* numbers remain **Zep's paper** (arXiv 2501.13956): gpt-4o overall **71.2%** vs 60.2% full-context baseline; per-split gpt-4o: single-session-user 92.9, single-session-assistant 80.4, preference 56.7, multi-session 57.9, **knowledge-update 83.3**, **temporal-reasoning 62.4** (latency 2.58s vs 28.9s).
+- *Is Grep All You Need* (arXiv 2605.15184) shows end-to-end accuracy is **dominated by the harness and tool-calling style, not the retrieval algorithm** — meaning cross-paper score comparisons are close to meaningless.
+
+**Consequences, now baked into the eval plan:**
+1. **Claim 1 is judged against baselines we reproduce ourselves under one fixed harness and one fixed reader model** — not against Zep's published 71.2% (different reader, different year). Zep's paper numbers remain the *published reference point*; the *measured* comparison is our own Graphiti/Zep-OSS run (or, if infra cost is too high, the documented published-number comparison with the caveat stated).
+2. We **publish per-split numbers, tokens/query, latency, and the full harness** (reader model, prompts, seeds). In a field of vendor self-reports, a controlled open harness is itself a contribution.
+3. We never compare our best config against baselines' worst; every baseline gets the same reader model and the same answer-extraction prompt.
+
+---
+
+## 5. The two measured claims (finalized wording)
+
+### Claim 1 — Version-history navigation as the temporal layer 🏆
+- **Exists:** DiffMem proves buildability (production, 896★). Zep proves temporal *structure* beats embeddings (+18.5% relative on LongMemEval; temporal split 62.4% gpt-4o) — via a temporal KG.
+- **Does NOT exist:** any benchmark number for the git approach (verified §4.2).
+- **Falsifiable claim:** *"A versioned filesystem plus a small agent that reads history matches temporal-KG performance on the temporal and knowledge-update splits, at a fraction of the infrastructure, under an identical harness."* If false, that's still publishable (KGs earn their complexity).
+
+### Claim 2 — Navigation-grounded abstention
+- **Exists:** LongMemEval scores abstention; *Learning When to Remember* (arXiv 2604.27283) does abstention-aware injection via bandit (must-cite).
+- **Does NOT exist:** abstention as **calibrated proof-of-absence from navigation traces** (coverage of routed candidates, subtrees visited, greps issued) rather than a similarity threshold.
+- Scored on LongMemEval's abstention questions; vector-RAG Baseline 1 structurally cannot compete (a low cosine score is not evidence of absence).
+
+### Baselines (unchanged roles, hardened execution)
+
+| Baseline | What it isolates | Execution note |
+|---|---|---|
+| 1. Vector RAG (Mem0-style) | The thing to beat | Run Mem0 OSS ourselves, same reader model |
+| 2. Plain filesystem memory (ByteRover-style: tree, no router, no git tools) | Our additions vs "just files" | ByteRover (arXiv 2604.01599) is LoCoMo SOTA at 96.1% — cite prominently; reimplement the pattern, don't fight their number on their benchmark |
+| 3. Git-memory (DiffMem-style: big-model agent, no router/cascade) | Router + small-orchestrator design | Same store, GPT-4o-class agent, no router — the cleanest Claim-1 ablation |
+| Reference point | Zep paper per-split numbers | Published comparison; reproduced run if budget allows |
+
+**Key ablations (unchanged):** ± router · ± each assist signal (ANN/BM25/thermometer) · **± git tools (= Claim 1)** · trace-based vs naive abstention · ± provenance drill-down · orchestrator 4B vs 7–8B · (later) ± optical return path.
+
+### 🚩 Methodology guardrails (hardened in v1)
+1. **One harness, one reader model, all systems.** (New — forced by §4.4.)
+2. Never train the orchestrator on the reported benchmark vs training-free baselines; if fine-tuning: synthetic/separate training source tested zero-shot, or cross-benchmark transfer (train LoCoMo → test LongMemEval).
+3. **Benchmark→git mapping must be mechanical:** ingest sessions chronologically, one commit per session/update — never hand-crafted per question.
+4. Bootstrap confidence intervals (500-question benchmark = noisy splits; abstention split is small).
+5. Latency is a promise: measure router+loop end-to-end or don't say "real-time." The ~1000–1200 tok/s router figure is a **target to validate**, never written as a spec.
+6. Report negative results per-split; do not average away a losing split.
+
+---
+
+## 6. Training plan (unchanged from v0.3)
+
+- **Phase 1 (week 1): everything prompted, zero training.** Prompted 4B navigation is plausible per ByteRover / *Is Grep All You Need*; router starts as ANN+BM25 candidates + a prompted tiny model. If prompted PCP clears reproduced-RAG, the core is de-risked.
+- **Phase 2 (if plateau): trace distillation.** Strong model runs the loop on the training split; keep success traces; SFT the 4B; distill router into a fast subtree classifier.
+- **Phase 3 (stretch, parked): retrieval-optimal writing** (reward writer on downstream navigation success; thermometer as persistence gate).
+- **Models:** orchestrator Qwen3-4B / Gemma-3-4B (fallback 7–8B); router ≤1B class.
+
+---
+
+## 7. Timeline & risks (updated)
+
+≈1 month, aggressive but staged so every week ends with a standalone result:
+
+- **Week 1 — Baselines & pipeline:** store schema; prompted loop; **reproduce Baselines 1–2 on LongMemEval_S under the fixed harness → numbers by day 7.** (This is the hard gate: if baseline reproduction slips, cut Baseline 2 before cutting the harness discipline.)
+- **Week 2 — PCP v1:** commit-on-write + git tools; router + assists; trace-based abstention; per-split eval + ablations. **Claims 1–2 measured here.**
+- **Week 3 — Real-data testbed** (+ optional Phase-2 SFT): labeling protocol + personal-archive run.
+- **Week 4 — Write-up + scaling curve** (1×/10×/100× nodes: navigation success/tokens/latency vs RAG's flat curve) + optional BEAM/MemoryArena datapoint.
+
+**Risks (v0.3 list carries over; updated/new items):**
+- **Crowded field** → protection remains the honest measure-don't-invent framing; §4.2 verifies the measurement gap is still open as of 2026-07-16.
+- **DiffMem proximity** → cite prominently, run as Baseline 3; delta = router + small orchestrator + abstention + provenance + MCP + *the measurements*.
+- **Leaderboard optics (new):** reviewers may ask "why is your overall number below OMEGA's 95.4?" → preempt: those are uncontrolled vendor self-reports with undisclosed harnesses; our contribution is a controlled per-split comparison, and we publish the harness.
+- **Reader-model confound (new, from *Is Grep All You Need*):** harness dominates retrieval algorithm → fixed reader model everywhere; harness in the repo.
+- **GitOfThoughts null result** → memory transfers only in high-resemblance regimes = an argument *for* personal context; say it before a reviewer does.
+- Router speed target unvalidated · 4B too weak (fallback 7–8B) · real-data labeling rigor · write-path drift + rename-vs-grep-history · provenance link rot (chats/ append-only, linting never rewrites it) — all as in v0.3.
+
+---
+
+## 8. Sanity-check verdict (recorded 2026-07-16)
+
+**Overall: the project is sound and the window is still open.** Specifically:
+
+1. **The gap is real and verified.** No git-versioned memory system has any benchmark number anywhere (repo, leaderboards, or the field's own 2026 state report). Claim 1 remains unclaimed territory.
+2. **The framing is right.** "Measure, don't invent" + honest §4 scope is the correct defense in a crowded field; keep it.
+3. **The architecture needed no change** — v1 confirms v0.3's layered design. What needed fixing was measurement: the V2 mix-up (§3.1) and the naive "compare to Zep's published number" plan (§4.4).
+4. **Biggest scientific risk:** the field's headline numbers (94–95%) make an "our number is lower but controlled" story harder to sell casually — mitigated by per-split focus (temporal/update/abstention, where even Zep's controlled numbers are 57–83%) and by publishing the harness.
+5. **Biggest execution risk:** the 1-month timeline with baseline reproduction in week 1. Baseline reproduction is unglamorous and always slower than expected; it is also non-negotiable (§5 guardrail 1). Protect week 1.
+6. **Additions in v1:** leaderboard-reality section; fixed-harness guardrail; drawbacks table (§4.3); optional BEAM/MemoryArena stretch; V2 flagged as future work for an agentic-experience extension.
+7. **Subtractions in v1:** LongMemEval-V2 as primary (wrong domain); comparing directly against vendor self-reported numbers; nothing else removed — optical substrate stays deferred, Phase 3 stays parked.
+
+---
+
+## 9. Prior work (deltas from v0.3 — verification pass 2026-07-16)
+
+Verified this pass: **ByteRover** = arXiv 2604.01599 ✓ (LoCoMo SOTA 96.1%, 5-tier retrieval, zero infra — Baseline 2 anchor). **Is Grep All You Need** = arXiv 2605.15184 ✓ (grep ≳ vectors, but *harness dominates* — now also cited for the reader-model guardrail; note its LongMemEval subset is 116 questions, not the full 500). **Zep** = arXiv 2501.13956 ✓ (per-split numbers in §4.4). **LongMemEval** = arXiv 2410.10813, ICLR 2025 ✓. **LongMemEval-V2** = arXiv 2605.12493 ✓ — *web-agent trajectories; reclassified from §D primary to future work.* **DiffMem** = github.com/Growth-Kinetics/DiffMem ✓ (896★; facts in §4). Remaining v0.3 IDs (§9 B/C/D/E/F/H/I of the idea doc) carry over **unverified** — run the same double-check before formal citation.
+
+---
+
+## 10. Pointers
+- Architecture walkthroughs, glossary, MCP/product section: idea doc v0.3 (unchanged, still authoritative for those sections).
+- Implementation steps: **`PCP_IMPLEMENTATION_v1.md`** (same directory).
+
+*v1.0 — finalized. Update as results land.*
