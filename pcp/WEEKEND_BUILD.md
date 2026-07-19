@@ -23,11 +23,25 @@ The full v2 (4 parallel retrievers + reranker + Gatekeeper + upward card propaga
 | Gatekeeper (frontier, filter/curate/JSON) | ✅ **filter + curate** | git-diff staleness reasoning, calibration |
 | Models | Gemini 3.5 Flash (host/Writer/Gatekeeper); Gemini Embeddings + BGE-Large; reader/judge pinned | Qwen3-4B/32B, Grok 4.5 ablation tier |
 | Provenance drill-down | ✅ IDs stored | `Recall_source/full` as MCP tools |
-| Baselines | **Vanilla RAG + Mem0** (2) | Zep, Letta, Cognee, ByteRover (week 1–2) |
+| Baselines | **Vanilla RAG only** (day 1) | **Mem0** (wk1), then Zep, Letta, Cognee, ByteRover (wk1–2) |
 
 **Weekend goal:** PCP-lite + 2 baselines produce scored numbers on **LongMemEval, PersonaMem-v2 (MCQ), LoCoMo** — under one harness. Headline target: **PCP-lite > 48% on PersonaMem-v2 MCQ.**
 
 ---
+
+## B.1 PRE-FLIGHT (first 30 min — do before writing pipeline code)
+- [ ] **Keys + spend cap:** Gemini 3.5 Flash + Gemini embeddings working; **hard budget cap set in the provider dashboard** before any ingestion run.
+- [ ] **Datasets pull (all verified public/ungated 2026-07-17):**
+  - LongMemEval: HF `xiaowu0162/longmemeval-cleaned` (oracle/S). Schema: `question, question_type, answer, question_id (_abs=abstention), haystack_sessions, answer_session_ids`.
+  - PersonaMem-v2: HF `bowen-upenn/PersonaMem-v2`, file **`benchmark/text/benchmark.csv`** + `data/chat_history_32k/*.json`. MCQ cols: `user_query, correct_answer, incorrect_answers`; per-persona history via `chat_history_32k_link`; bonus update signal in `updated`/`prev_pref`.
+  - LoCoMo: **GitHub** `snap-research/locomo` → `data/locomo10.json` (10 convs, ~199 QA each). Schema: `qa:[{question, answer, evidence, category}]`, `conversation`. (HF mirror is README-only — use GitHub raw.)
+- [ ] **Caching + repro on from line 1** (§B.2). 
+
+## B.2 Caching + reproducibility (build these into the wrappers, not bolted on later)
+- **Disk cache:** wrap every embedding + LLM call; key = `sha256(model + params + prompt)` → JSON on disk (`cache/`). Debug re-runs re-pay nothing after the first pass (turns LME's ~4,000 Writer calls into a one-time cost).
+- **temperature = 0** for reader, judge, Gatekeeper, Writer (determinism).
+- **Seeds pinned** (subset sampling, any shuffles) = 42.
+- **Abstention path wired end-to-end:** empty Gatekeeper `pass` → package = "NO_MEMORY_FOUND" → reader outputs "the information is not available" → LME `_abs` judge scores it correct. Test one `_abs` question before the full run.
 
 ## C. Repo (aligned to v2)
 ```
@@ -43,7 +57,8 @@ pcp/
     gatekeeper.py              # frontier LLM → JSON {pass, drop, reason} + curated digest
     reader.py                  # fixed reader answers from package only
     mcp_server.py              # Save / Recall (stdio) — the seam everything calls
-    baselines/{vanilla_rag.py, mem0_adapter.py}
+    cache.py                   # sha256(model+params+prompt) → disk; wraps all embed/LLM calls
+    baselines/vanilla_rag.py   # day-1 baseline (Mem0 adapter = week 1)
   bench/{common.py, lme.py, personamem.py, locomo.py}
   run.py                       # run.py --bench lme --system pcp --subset 100 --mode A
   results/  runs/  stores/
@@ -65,7 +80,7 @@ pcp/
 | Block | Work |
 |---|---|
 | AM-1 | PCP-lite on the same 20 LME Qs; read every trace + Gatekeeper JSON. Fix obvious Writer/descent misses. |
-| AM-2 | Full 100-q LME: vanilla RAG + Mem0 + PCP-lite → **first per-type table**. |
+| AM-2 | Full 100-q LME: vanilla RAG + PCP-lite → **first per-type table**. |
 | PM-1 | `bench/personamem.py`: ingest + PCP-lite on 100 MCQs → **headline number** (Writer must emit `[implicit]` prefs). |
 | PM-2 | `bench/locomo.py`: 100 QA → checkbox. |
 | Eve | Launch overnight full runs; commit `results/` + `runs/`; push. |
@@ -87,7 +102,7 @@ budgets: {max_steps: 12, max_tool_tokens: 2000, max_query_s: 120}
 > Confirm exact provider IDs Saturday AM (gemini-3.5-flash, grok-4.5, qwen3-32b, gemini embedding model name). Set the spend cap before the first run.
 
 ## F. Definition of done (Sun night)
-- [ ] Table: {vanilla-RAG, Mem0, PCP-lite} × {LME-100 (per-type), PersonaMem-MCQ-100, LoCoMo-100}; cols = accuracy, tokens/q, latency, cost. Committed + pushed.
+- [ ] Table: {vanilla-RAG, PCP-lite} × {LME-100 (per-type), PersonaMem-MCQ-100, LoCoMo-100}; cols = accuracy, tokens/q, latency, cost. Committed + pushed.
 - [ ] Every number from `run.py` + config hash; `runs/` has traces + Gatekeeper JSON for reuse.
 - [ ] 10 Recall traces human-read; failure buckets noted (write/route/nav-miss).
 - [ ] Overnight full runs launched.
