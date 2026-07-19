@@ -140,6 +140,20 @@ Its jobs:
 > This replaces v1's naive "similarity threshold" abstention: abstention = Gatekeeper returns empty `pass` with the
 > descent+grep trace as evidence of absence.
 
+### 4.1 Gatekeeper: ranks or only filters? → **Split the jobs** (decision)
+**Reranking and curation are different axes — don't collapse them into one call.**
+- A **reranker** (BGE cross-encoder) knows *topical relevance* → it collapses the fused pool to a top-k shortlist, cheaply and calibratedly. Runs *before* the Gatekeeper.
+- The **Gatekeeper** (frontier LLM) does what a reranker *cannot*: drop **stale/superseded** memories (via `git diff`/`git log`), drop **contradictory/negative** ones, resist **false-premise** traps (abstention), and **synthesize the curated digest**. It emits the final package and may lightly reorder the small passed set as a byproduct — but ordering is not its job.
+- **Why this is better than a reranking Gatekeeper:** (a) cheaper — a frontier model shouldn't spend tokens sorting; (b) each stage is independently ablatable (±reranker, ±gatekeeper), which the eval needs; (c) it cleanly separates "relevant" from "true & fresh," the exact distinction that kills stale-info leakage. If an ablation shows the reranker adds nothing on top of fusion+Gatekeeper, drop it — but measure, don't assume.
+
+### 4.2 Prior art the tree resembles — name it, differentiate on edges (honesty)
+The self-describing tree with online insertion into the most-similar branch is the **MemTree** family (dynamic conversational memory tree), itself descended from **RAPTOR** (recursive summary tree, ICLR 2024). **Cite both; do not claim the tree is novel.** The real differentiators to state plainly:
+1. **Edge-traversal retrieval, not collapsed.** MemTree/RAPTOR *flatten* the tree and rank nodes independently (edges unused at read time). PCP **descends the edges** (recursive grader) — the hierarchy does work during retrieval, and the *same* descent files the memory (the symmetry principle).
+2. **Multi-retriever fusion + Gatekeeper curation** over the tree output (staleness/negative filtering) — not present in MemTree.
+3. **Git provenance + drill-down + temporal checkout.**
+4. Measured on **personal context** (PersonaMem-v2), where none of these exist.
+See also *Temporal Order Matters / Segment Trees* (arXiv 2606.04555) — argues insertion order matters; relevant to our "commit-in-chronological-order" rule.
+
 ---
 
 ## 5. Model roles (frontier-first; no small embedders)
@@ -149,11 +163,9 @@ Its jobs:
 | **Host generator** | **Gemini 3.5 Flash** | The chatting model; calls Save/Recall. Also the default for Writer + Gatekeeper. |
 | **Writer** | Gemini 3.5 Flash | Distills episodic memory, writes KV notes, decides placement, propagates cards. |
 | **Gatekeeper/Curator** | Gemini 3.5 Flash | Fusion → curated JSON package; handles git/time reasoning on candidates. |
-| **Ablation tier (subset only)** | **Qwen3-4B, Qwen3-27B(≈Gemma-3-27B?), Grok 4.5** | Swap in on the seeded subsets to plot quality-vs-model-size and prove PCP isn't model-locked. |
-| **Embeddings** | Frontier (Gemini embeddings / text-embedding-3-large / Voyage-3 / Qwen-embed) | **Not** bge-small — we iterate on the frontier per owner. Pick one, pin it. |
-| **Reranker (optional assist)** | A strong reranker (e.g. Cohere-rerank / Qwen-rerank) | Feeds the fusion stage. |
-
-> Confirm exact API IDs before day 1 (esp. "Qwen 27B" — Qwen ships 32B/14B, Gemma ships 27B; pick the intended one).
+| **Ablation tier (subset only)** | **Qwen3-4B, Qwen3-32B, Grok 4.5** | Swap in on the seeded subsets to plot quality-vs-model-size and prove PCP isn't model-locked. |
+| **Embeddings** | **Gemini Embeddings** (primary) **+ BGE-Large (latest)** (secondary/ablation) | Dual-embed: run both, compare recall; Gemini for semantic breadth, BGE-Large as a strong open reproducible anchor. Pinned. |
+| **Reranker** | **BGE reranker (cross-encoder)** | Ranks the fused pool → shortlist, *before* the Gatekeeper (see §4.1). Independently ablatable. |
 
 ---
 
