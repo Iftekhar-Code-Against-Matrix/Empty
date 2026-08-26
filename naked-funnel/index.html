@@ -1,0 +1,928 @@
+<title>The Naked Drive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ============================================================
+   TOKENS — light is the bare :root, dark re-tokened twice
+   ============================================================ */
+:root{
+  --ground:#F7F8FA;
+  --surface:#FFFFFF;
+  --surface-2:#EFF1F5;
+  --hover:#F0F2F6;
+  --ink:#16181D;
+  --ink-2:#3D434E;
+  --muted:#6B7382;
+  --faint:#9AA1AF;
+  --line:#E3E6EB;
+  --line-2:#D2D7DF;
+
+  --ochre:#BE7F3C;
+  --ochre-ink:#8A5A24;
+  --ochre-wash:#FBF3E8;
+
+  --verified:#2F7D5C;
+  --verified-wash:#E9F3EE;
+  --clay:#B44B3C;
+  --clay-wash:#FBEDEB;
+
+  --cta-bg:#16181D;
+  --cta-fg:#F4F6F9;
+
+  --shadow-sm:0 1px 2px rgba(20,24,32,.06),0 1px 3px rgba(20,24,32,.05);
+  --shadow-lg:0 12px 32px -8px rgba(20,24,32,.18),0 4px 10px rgba(20,24,32,.06);
+
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --rail:248px;
+  --row-h:44px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#131519;
+    --surface:#1B1E24;
+    --surface-2:#23272F;
+    --hover:#262A33;
+    --ink:#E9EBEF;
+    --ink-2:#C2C7D0;
+    --muted:#8B93A1;
+    --faint:#6A7180;
+    --line:#2B2F38;
+    --line-2:#3A3F4A;
+
+    --ochre:#DC9E58;
+    --ochre-ink:#EFBE86;
+    --ochre-wash:#2C2418;
+
+    --verified:#56A987;
+    --verified-wash:#182720;
+    --clay:#D0705F;
+    --clay-wash:#2C1C19;
+
+    --cta-bg:#23272F;
+    --cta-fg:#E9EBEF;
+
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+    --shadow-lg:0 16px 40px -10px rgba(0,0,0,.6),0 4px 12px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131519;
+  --surface:#1B1E24;
+  --surface-2:#23272F;
+  --hover:#262A33;
+  --ink:#E9EBEF;
+  --ink-2:#C2C7D0;
+  --muted:#8B93A1;
+  --faint:#6A7180;
+  --line:#2B2F38;
+  --line-2:#3A3F4A;
+
+  --ochre:#DC9E58;
+  --ochre-ink:#EFBE86;
+  --ochre-wash:#2C2418;
+
+  --verified:#56A987;
+  --verified-wash:#182720;
+  --clay:#D0705F;
+  --clay-wash:#2C1C19;
+
+  --cta-bg:#23272F;
+  --cta-fg:#E9EBEF;
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-lg:0 16px 40px -10px rgba(0,0,0,.6),0 4px 12px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--ochre);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ============================================================
+   SAMPLE-DATA BANNER — must never be quietly shippable
+   ============================================================ */
+.samplebar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:8px 16px;
+  background:var(--clay-wash);
+  border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11.5px;color:var(--clay);
+}
+.samplebar strong{font-weight:600;letter-spacing:.04em}
+.samplebar span{color:var(--muted)}
+
+/* ============================================================
+   APP CHROME
+   ============================================================ */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{
+  display:flex;align-items:center;gap:16px;
+  padding:0 16px;height:56px;flex:0 0 auto;
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.01em}
+.brand .glyph{
+  width:22px;height:18px;border-radius:2px 3px 3px 3px;flex:0 0 auto;
+  background:var(--ochre);position:relative;
+}
+.brand .glyph::before{
+  content:"";position:absolute;top:-4px;left:0;width:9px;height:5px;
+  border-radius:2px 2px 0 0;background:var(--ochre);
+}
+.brand small{
+  font-family:var(--mono);font-size:11px;font-weight:400;color:var(--muted);
+  padding-left:10px;margin-left:2px;border-left:1px solid var(--line-2);
+}
+.search{
+  flex:1 1 auto;max-width:440px;
+  display:flex;align-items:center;gap:8px;
+  height:34px;padding:0 12px;border-radius:6px;
+  background:var(--surface-2);border:1px solid transparent;
+  font-family:var(--mono);font-size:12px;color:var(--faint);
+}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+.chip{
+  font-family:var(--mono);font-size:11px;letter-spacing:.02em;
+  padding:5px 10px;border-radius:5px;
+  border:1px solid var(--line-2);color:var(--muted);
+  transition:background .12s,color .12s,border-color .12s;
+}
+.chip:hover{background:var(--hover);color:var(--ink)}
+.chip[aria-pressed="true"]{
+  background:var(--ochre-wash);border-color:var(--ochre);color:var(--ochre-ink);
+}
+
+.body{display:flex;flex:1 1 auto;min-height:0;align-items:stretch}
+
+/* ---------- sidebar ---------- */
+.rail{
+  width:var(--rail);flex:0 0 var(--rail);
+  border-right:1px solid var(--line);
+  background:var(--surface);
+  padding:16px 10px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.rail h2{
+  font-family:var(--mono);font-size:10.5px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+  margin:8px 8px 6px;
+}
+.railitem{
+  display:flex;align-items:center;gap:9px;width:100%;
+  padding:7px 9px;border-radius:6px;text-align:left;
+  color:var(--ink-2);font-size:13px;
+  transition:background .12s;
+}
+.railitem:hover{background:var(--hover)}
+.railitem[aria-current="true"]{background:var(--ochre-wash);color:var(--ochre-ink);font-weight:500}
+.railitem .fi{flex:0 0 auto}
+.railitem span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.meter{margin-top:auto;padding:12px 9px 4px;border-top:1px solid var(--line)}
+.meter .lbl{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.meter .bar{height:4px;border-radius:2px;background:var(--surface-2);margin:8px 0 6px;overflow:hidden}
+.meter .bar i{display:block;height:100%;background:var(--verified);border-radius:2px}
+.meter .sub{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+
+/* ---------- main pane ---------- */
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.crumbbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:14px 22px 12px;border-bottom:1px solid var(--line);
+}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.crumbs button{font-weight:600;color:var(--muted);border-radius:4px;padding:2px 4px}
+.crumbs button:hover{color:var(--ink);background:var(--hover)}
+.crumbs .sep{color:var(--faint);font-weight:400}
+.crumbbar .spacer{flex:1 1 auto}
+
+.pane{padding:6px 12px 0;overflow-y:auto;flex:1 1 auto}
+
+.thead,.row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 132px 108px 92px;
+  align-items:center;gap:12px;
+  padding:0 10px;
+}
+.thead{
+  height:32px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--ground);z-index:2;
+}
+.row{
+  min-height:var(--row-h);width:100%;text-align:left;
+  border-radius:6px;border-bottom:1px solid transparent;
+  transition:background .1s;
+}
+.row+.row{border-top:1px solid var(--line)}
+.row:hover{background:var(--hover)}
+.namecell{display:flex;align-items:center;gap:11px;min-width:0}
+.namecell .fi{flex:0 0 auto}
+.nm{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.row .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row .meta.r{text-align:right}
+
+.badge{
+  display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;
+  font-family:var(--mono);font-size:10px;letter-spacing:.05em;
+  padding:2px 6px;border-radius:4px;white-space:nowrap;
+}
+.badge.ok{background:var(--verified-wash);color:var(--verified)}
+.badge.no{background:var(--clay-wash);color:var(--clay)}
+.badge.lock{background:var(--ochre-wash);color:var(--ochre-ink)}
+
+/* file icons */
+.fi{width:16px;height:16px;display:block}
+
+/* ---------- note / readme rendering ---------- */
+.note{
+  max-width:64ch;margin:22px 10px 0;padding:20px 22px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  box-shadow:var(--shadow-sm);
+}
+.note h3{margin:0 0 4px;font-size:14px;letter-spacing:-.01em}
+.note p{margin:10px 0 0;color:var(--ink-2);font-size:13.5px}
+.note .kicker{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--faint);
+}
+
+/* ---------- CTA: deliberate rupture of the file-manager chrome ---------- */
+.cta{
+  margin:34px 10px 40px;padding:38px 40px;border-radius:10px;
+  background:var(--cta-bg);color:var(--cta-fg);
+  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;
+}
+.cta{box-shadow:var(--shadow-lg)}
+.cta h2{
+  margin:0;font-size:30px;line-height:1.12;letter-spacing:-.025em;
+  text-wrap:balance;font-weight:600;
+}
+.cta .lede{margin:14px 0 0;font-size:14.5px;line-height:1.6;opacity:.72;max-width:44ch}
+.cta .ticks{margin:22px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.cta .ticks li{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.01em;
+  opacity:.62;display:flex;gap:9px;
+}
+.cta .ticks li::before{content:"✓";color:var(--ochre);opacity:1}
+
+form{display:flex;flex-direction:column;gap:13px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;opacity:.55;
+}
+.field input,.field select,.field textarea{
+  font-family:var(--sans);font-size:13.5px;color:inherit;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.16);border-radius:6px;
+  padding:9px 11px;width:100%;
+}
+.field textarea{resize:vertical;min-height:62px}
+.field select option{color:#16181D;background:#fff}
+.field input::placeholder,.field textarea::placeholder{color:rgba(255,255,255,.34)}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--ochre);background:rgba(255,255,255,.09);
+}
+.submit{
+  margin-top:4px;padding:11px 18px;border-radius:6px;
+  background:var(--ochre);color:#1B1206;font-weight:600;font-size:13.5px;
+  transition:filter .12s;
+}
+.submit:hover{filter:brightness(1.07)}
+.finetext{font-family:var(--mono);font-size:10.5px;opacity:.45;line-height:1.55;margin:2px 0 0}
+
+/* ---------- preview drawer ---------- */
+.drawer{
+  width:0;flex:0 0 0;overflow:hidden;
+  border-left:1px solid var(--line);background:var(--surface);
+  transition:flex-basis .2s ease,width .2s ease;
+}
+.drawer.open{width:432px;flex:0 0 432px}
+.dwrap{width:432px;height:100%;display:flex;flex-direction:column}
+.dhead{
+  padding:16px 18px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:flex-start;gap:12px;
+}
+.dhead .t{flex:1 1 auto;min-width:0}
+.dhead .nm{font-size:13px;white-space:normal;word-break:break-word}
+.dhead .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:5px}
+.dclose{font-size:18px;line-height:1;color:var(--muted);padding:2px 6px;border-radius:5px}
+.dclose:hover{background:var(--hover);color:var(--ink)}
+.dbody{padding:18px;overflow-y:auto;flex:1 1 auto;display:flex;flex-direction:column;gap:16px}
+.dbody p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.6}
+.claim{
+  padding:13px 14px;border-radius:7px;background:var(--surface-2);
+  border-left:2px solid var(--ochre);
+}
+.claim .lbl{
+  font-family:var(--mono);font-size:10px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:5px;
+}
+.claim .val{font-size:15px;font-weight:600;letter-spacing:-.01em}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:7px}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:11.5px}
+th,td{padding:7px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{
+  color:var(--faint);font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+  font-size:10px;background:var(--surface-2);
+}
+td{color:var(--ink-2);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+td.pos{color:var(--verified)}
+td.neg{color:var(--clay)}
+
+.dfoot{padding:14px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+.dl{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 14px;border-radius:6px;width:100%;
+  background:var(--ochre);color:#1B1206;font-size:13px;font-weight:600;
+}
+.dl:hover{filter:brightness(1.07)}
+.dfoot .hint{font-family:var(--mono);font-size:10.5px;color:var(--faint);text-align:center}
+
+/* ---------- modal ---------- */
+.scrim{
+  position:fixed;inset:0;background:rgba(12,14,18,.55);
+  display:none;align-items:center;justify-content:center;padding:20px;z-index:60;
+}
+.scrim.open{display:flex}
+.modal{
+  width:100%;max-width:412px;background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow-lg);padding:26px;
+}
+.modal h3{margin:0;font-size:17px;letter-spacing:-.015em}
+.modal p{margin:9px 0 18px;color:var(--muted);font-size:13px;line-height:1.55}
+.modal .field label{opacity:1;color:var(--faint)}
+.modal .field input{
+  background:var(--surface-2);border-color:var(--line-2);color:var(--ink);
+}
+.modal .field input::placeholder{color:var(--faint)}
+.modal .submit{width:100%}
+.modal .skip{
+  display:block;width:100%;text-align:center;margin-top:11px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);padding:6px;
+}
+.modal .skip:hover{color:var(--ink);text-decoration:underline}
+
+/* ---------- intent signal popover (anchored to the topbar) ---------- */
+.signalwrap{position:relative}
+.signal{
+  position:absolute;top:calc(100% + 9px);right:0;z-index:55;
+  width:320px;display:none;
+  background:var(--surface);border:1px solid var(--line-2);
+  border-radius:9px;box-shadow:var(--shadow-lg);overflow:hidden;
+}
+.signal.open{display:block}
+.signal .cap{
+  padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--faint);
+}
+.sb{max-height:240px;overflow-y:auto}
+#signalHead .dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--verified);margin-right:6px;vertical-align:middle;
+}
+.ev{
+  padding:7px 12px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-2);
+  display:flex;gap:8px;
+}
+.ev:last-child{border-bottom:none}
+.ev time{color:var(--faint);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.ev b{font-weight:500;color:var(--ochre-ink)}
+.ev .empty{color:var(--faint)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1080px){
+  .drawer.open{width:360px;flex:0 0 360px}
+  .dwrap{width:360px}
+}
+@media (max-width:860px){
+  .topbar{height:auto;min-height:56px;padding:10px 14px;flex-wrap:wrap;row-gap:8px}
+  .brand small{display:none}
+  .search{display:none}
+  .rail{display:none}
+  .cta{grid-template-columns:1fr;gap:26px;padding:28px 24px}
+  .cta h2{font-size:25px}
+  .thead,.row{grid-template-columns:minmax(0,1fr) 92px}
+  .thead .hide,.row .hide{display:none}
+  .drawer{position:fixed;inset:0;width:100%!important;flex:none!important;z-index:70;display:none}
+  .drawer.open{display:block}
+  .dwrap{width:100%}
+  .signal{width:min(320px,calc(100vw - 32px))}
+}
+</style>
+
+<div class="samplebar">
+  <strong>SAMPLE DATA</strong>
+  <span>Every figure, filename and case below is placeholder scaffolding. Replace with real artifacts before this ships — the premise inverts if one number can't be traced.</span>
+</div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <i class="glyph" aria-hidden="true"></i>
+      Naked Drive
+      <small>everything we claim, with the receipts</small>
+    </div>
+    <div class="search" aria-hidden="true">search this drive</div>
+    <div class="topbar-right">
+      <button class="chip" id="gateBtn" aria-pressed="false">gate: artifacts only</button>
+      <button class="chip" id="themeBtn">theme</button>
+      <div class="signalwrap">
+        <button class="chip" id="signalHead" aria-expanded="false"><i class="dot" aria-hidden="true"></i><span id="signalCt">0 events</span></button>
+        <div class="signal" id="signal">
+          <div class="cap">intent signal — what your CRM would receive</div>
+          <div class="sb" id="signalBody"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body">
+    <nav class="rail" id="rail" aria-label="Folders"></nav>
+
+    <main class="main">
+      <div class="crumbbar">
+        <div class="crumbs" id="crumbs"></div>
+        <div class="spacer"></div>
+        <span class="badge ok" id="verifyCount"></span>
+      </div>
+      <div class="pane" id="pane"></div>
+    </main>
+
+    <aside class="drawer" id="drawer" aria-label="File preview"></aside>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   CONTENT — replace wholesale with real artifacts.
+   `verified:true` means the file below it proves the claim above it.
+   ============================================================ */
+var TREE = {
+  name:"Naked Drive", kind:"folder", children:[
+
+  {name:"00_READ_ME_FIRST.txt", kind:"doc", mod:"Aug 24, 2026", size:"2 KB", verified:true,
+   claim:{lbl:"the rules of this drive", val:"Four of them. We break one, you walk."},
+   body:[
+     "1 — Every number in here links to the file it came out of. Not a summary of the file. The file.",
+     "2 — If we can't prove something, it's labelled unverified and we say why. There are three of those in 01_what_we_claim.",
+     "3 — 03_didnt_work is the same size as the wins folder. On purpose. An agency that has never lost money has never spent any.",
+     "4 — Nothing here is behind a form except the raw exports, because you can't reproduce our work without them and we'd like to know who's checking."
+   ]},
+
+  {name:"01_what_we_claim", kind:"folder", children:[
+    {name:"claim_01_cac_reduction.md", kind:"doc", mod:"Aug 22, 2026", size:"6 KB", verified:true,
+     claim:{lbl:"claim 01 — verified", val:"CAC down 38% in 90 days"},
+     body:["Blended paid CAC across three accounts we took over in Q1. Proof is the raw platform export in 02_receipts — not our dashboard, the platform's own CSV.",
+           "The 38% is a median. One account moved 51%, one moved 40%, one moved 9% and we nearly got fired over it. That third account is written up in 03_didnt_work."],
+     table:{cols:["account","cac before","cac after","delta"],rows:[
+       ["northwind","$412","$203","-51%","pos"],["helio_labs","$188","$113","-40%","pos"],["cartwright","$96","$87","-9%","pos"]]}},
+
+    {name:"claim_02_pipeline_influenced.md", kind:"doc", mod:"Aug 22, 2026", size:"4 KB", verified:true,
+     claim:{lbl:"claim 02 — verified", val:"$2.4M pipeline influenced, 2025"},
+     body:["Influenced, not sourced. The distinction matters and most agencies bury it. Sourced was $610K. Both numbers are in the CRM export.",
+           "Attribution model we used is in 04_how_we_do_it — including the parts of it we think are wrong."]},
+
+    {name:"claim_03_creative_velocity.md", kind:"doc", mod:"Aug 19, 2026", size:"3 KB", verified:false,
+     claim:{lbl:"claim 03 — UNVERIFIED", val:"~4x creative output"},
+     body:["We believe this is true and we cannot prove it to your satisfaction.",
+           "The comparison baseline is what the client told us they used to produce, which is not evidence. We're leaving the claim up, labelled, rather than deleting it — because deleting it would make this folder look cleaner than our actual record."]}
+  ]},
+
+  {name:"02_receipts", kind:"folder", children:[
+    {name:"ad_account_export_2025Q4.csv", kind:"sheet", mod:"Aug 20, 2026", size:"1.8 MB", verified:true, gated:true,
+     claim:{lbl:"raw platform export", val:"91 days, unedited"},
+     body:["Straight out of the ad platform. Nothing removed except client names in column A. Every figure in claim_01 is reproducible from this file — recompute it yourself."],
+     table:{cols:["date","spend","conv","cac"],rows:[
+       ["2025-10-01","$4,210","19","$221",""],["2025-10-02","$4,190","23","$182","pos"],
+       ["2025-10-03","$3,980","11","$362","neg"],["2025-10-04","$4,320","27","$160","pos"]]}},
+
+    {name:"ga4_raw_events_sample.csv", kind:"sheet", mod:"Aug 20, 2026", size:"940 KB", verified:true, gated:true,
+     claim:{lbl:"analytics export", val:"event-level, not sessionised"},
+     body:["Sessionised data hides the thing you actually want to see. This is event-level so you can sessionise it your own way and check whether ours was self-serving."]},
+
+    {name:"invoice_redacted_northwind.pdf", kind:"pdf", mod:"Aug 18, 2026", size:"212 KB", verified:true,
+     claim:{lbl:"what they actually paid", val:"$8,500/mo, 11 months"},
+     body:["Redacted to the client's signature and bank details only. The retainer, the scope and the term are all visible, because those are the parts you'd want to check against our pricing folder."]},
+
+    {name:"reference_calls_who_to_ask.md", kind:"doc", mod:"Aug 17, 2026", size:"2 KB", verified:true,
+     claim:{lbl:"references", val:"Three names. One of them fired us."},
+     body:["Two happy clients and one who ended the engagement. All three have agreed to take a call. We don't get to sit in on any of them."]}
+  ]},
+
+  {name:"03_didnt_work", kind:"folder", children:[
+    {name:"postmortem_tiktok_spend.md", kind:"doc", mod:"Aug 21, 2026", size:"7 KB", verified:true,
+     claim:{lbl:"money we lost", val:"$31,400 burned, 6 weeks"},
+     body:["We were wrong about the audience and slow to admit it. Weeks 1–3 the signal was already bad and we called it 'learning phase'. It wasn't.",
+           "What we changed after: a hard kill threshold written into the contract, so the client can stop a channel without a meeting."],
+     table:{cols:["week","spend","conv","verdict"],rows:[
+       ["1","$6,100","4","learning","" ],["2","$7,200","3","bad","neg"],
+       ["3","$6,800","2","bad — should have killed","neg"],["4","$5,900","6","killed","neg"]]}},
+
+    {name:"failed_test_log_47_variants.csv", kind:"sheet", mod:"Aug 21, 2026", size:"88 KB", verified:true, gated:true,
+     claim:{lbl:"the losers", val:"47 tests, 41 flat or negative"},
+     body:["The six that worked paid for the forty-one that didn't. Any agency showing you only winners is showing you a sixth of their work."]},
+
+    {name:"client_we_lost_and_why.md", kind:"doc", mod:"Aug 15, 2026", size:"3 KB", verified:true,
+     claim:{lbl:"cartwright, ended month 5", val:"Our fault, mostly"},
+     body:["We staffed it with one person who was already on two other accounts. The work was late and the client was right to leave. They're in the reference list."]}
+  ]},
+
+  {name:"04_how_we_do_it", kind:"folder", children:[
+    {name:"sop_creative_testing.md", kind:"doc", mod:"Aug 14, 2026", size:"11 KB", verified:true,
+     claim:{lbl:"the actual playbook", val:"Run it yourself. Genuinely."},
+     body:["This is the internal SOP, not a summary of it. If you read this and decide to run it in-house instead of hiring us, that's a fine outcome — you were never going to be a good client if a document could replace us."]},
+
+    {name:"attribution_model.xlsx", kind:"sheet", mod:"Aug 14, 2026", size:"340 KB", verified:true, gated:true,
+     claim:{lbl:"the model", val:"Including where it's wrong"},
+     body:["Tab 4 lists the three assumptions we think are shaky and how much each one could be flattering us by. Worst case it overstates influenced pipeline by about 12%."]},
+
+    {name:"week_one_checklist.md", kind:"doc", mod:"Aug 12, 2026", size:"5 KB", verified:true,
+     claim:{lbl:"first 7 days", val:"31 items, timestamped"},
+     body:["What we do before we spend a cent of your money. If any item slips past day 7, it's flagged in your weekly note automatically."]}
+  ]},
+
+  {name:"05_what_we_charge", kind:"folder", children:[
+    {name:"pricing_all_tiers.md", kind:"doc", mod:"Aug 10, 2026", size:"4 KB", verified:true,
+     claim:{lbl:"public pricing", val:"$6.5K – $18K / month"},
+     body:["No 'contact us for pricing'. If the number is wrong for you, we both just saved a call."],
+     table:{cols:["tier","monthly","channels","hours/mo"],rows:[
+       ["single channel","$6,500","1","~40",""],["multi","$11,000","3","~70",""],["full","$18,000","5+","~120",""]]}},
+
+    {name:"what_youre_actually_paying_for.md", kind:"doc", mod:"Aug 10, 2026", size:"3 KB", verified:true,
+     claim:{lbl:"cost breakdown", val:"62% salary, 11% tools, 27% margin"},
+     body:["Our margin is 27% and we're not embarrassed about it. An agency running at 8% is about to cut your account team."]}
+  ]},
+
+  {name:"06_who_were_wrong_for.txt", kind:"doc", mod:"Aug 09, 2026", size:"2 KB", verified:true,
+   claim:{lbl:"disqualification", val:"Four kinds of client we turn down"},
+   body:["Under $4K/mo ad spend — you don't need us, you need a freelancer and this SOP folder.",
+         "Anyone who needs results inside 30 days. We can't and neither can they.",
+         "Anyone who wants us to own the number but not the strategy.",
+         "Anyone who found this drive and wants a version of it with the failures folder removed."]},
+
+  {name:"_archive", kind:"folder", children:[
+    {name:"old_site_copy_2023.md", kind:"doc", mod:"Mar 02, 2024", size:"9 KB", verified:false,
+     claim:{lbl:"our old website — UNVERIFIED", val:"'Industry-leading ROI'"},
+     body:["Kept deliberately. This is what we used to say before we had anything to show. It's vague, it's unprovable, and it's exactly the kind of copy this entire drive exists to replace."]}
+  ]}
+]};
+
+/* ============================================================
+   ICONS
+   ============================================================ */
+var ICON = {
+  folder:'<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.4 1.5H13a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1z"/>',
+  doc:'<path d="M3.5 1.5h5L12 5v9a.5.5 0 0 1-.5.5h-8A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8.5 1.7V5H12" fill="none" stroke="currentColor" stroke-width="1.2"/>',
+  sheet:'<rect x="2.5" y="2" width="11" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 6h11M6.5 6v8" stroke="currentColor" stroke-width="1.2"/>',
+  pdf:'<rect x="3" y="1.6" width="10" height="12.8" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5.6 9.4c2.2-.7 3.6-2.6 3.4-3.6-.2-.9-1.2-.6-1.1.7.2 1.9 1.7 3.6 3.1 3.4" fill="none" stroke="currentColor" stroke-width="1.1"/>'
+};
+function icon(kind,color){
+  var d = ICON[kind]||ICON.doc;
+  var fill = kind==="folder" ? ' fill="'+color+'"' : ' fill="none"';
+  return '<svg class="fi" viewBox="0 0 16 16" aria-hidden="true" style="color:'+color+'"'+fill+'>'+d+'</svg>';
+}
+function iconFor(n){
+  return icon(n.kind, n.kind==="folder" ? "var(--ochre)" : "var(--muted)");
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var path = [];                 // array of folder names from root
+var gateMode = "artifacts";    // "artifacts" (recommended) | "walled"
+var unlocked = false;          // walled-mode entry gate cleared
+var captured = null;           // captured email
+var events = [];
+
+var $ = function(id){ return document.getElementById(id); };
+
+function log(kind, detail){
+  var t = new Date();
+  events.unshift({
+    t: String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0")+":"+String(t.getSeconds()).padStart(2,"0"),
+    kind: kind, detail: detail
+  });
+  renderSignal();
+}
+
+function nodeAt(p){
+  var n = TREE;
+  for(var i=0;i<p.length;i++){
+    var kids = n.children||[], hit=null;
+    for(var j=0;j<kids.length;j++){ if(kids[j].name===p[i]){ hit=kids[j]; break; } }
+    if(!hit) return n;
+    n = hit;
+  }
+  return n;
+}
+
+function countVerified(n, acc){
+  acc = acc||{ok:0,no:0};
+  (n.children||[]).forEach(function(c){
+    if(c.kind==="folder") countVerified(c,acc);
+    else if(c.verified) acc.ok++; else acc.no++;
+  });
+  return acc;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderRail(){
+  var kids = TREE.children.filter(function(c){ return c.kind==="folder"; });
+  var html = '<h2>Proof drive</h2>';
+  html += '<button class="railitem" data-go="" aria-current="'+(path.length===0)+'">'+
+          icon("folder","var(--ochre)")+'<span>All files</span></button>';
+  kids.forEach(function(c){
+    html += '<button class="railitem" data-go="'+c.name+'" aria-current="'+(path[0]===c.name)+'">'+
+            icon("folder","var(--ochre)")+'<span>'+c.name+'</span></button>';
+  });
+  var v = countVerified(TREE);
+  var pct = Math.round(v.ok/(v.ok+v.no)*100);
+  html += '<div class="meter"><div class="lbl"><span>Verified</span><span>'+v.ok+'/'+(v.ok+v.no)+'</span></div>'+
+          '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+          '<div class="sub">'+v.no+' labelled unverified, on purpose</div></div>';
+  $("rail").innerHTML = html;
+}
+
+function renderCrumbs(){
+  var html = '<button data-go="">Naked Drive</button>';
+  var acc = [];
+  path.forEach(function(seg){
+    acc.push(seg);
+    html += '<span class="sep">/</span><button data-go="'+acc.join("|")+'">'+seg+'</button>';
+  });
+  $("crumbs").innerHTML = html;
+  var v = countVerified(nodeAt(path).children ? nodeAt(path) : TREE);
+  $("verifyCount").textContent = v.ok+" verified · "+v.no+" not";
+}
+
+function rowHtml(n){
+  var badge = "";
+  if(n.kind!=="folder"){
+    if(n.gated) badge = '<span class="badge lock">RAW · email</span>';
+    else if(n.verified) badge = '<span class="badge ok">verified</span>';
+    else badge = '<span class="badge no">unverified</span>';
+  }
+  return '<button class="row" data-open="'+n.name+'">'+
+    '<span class="namecell">'+iconFor(n)+'<span class="nm">'+n.name+(n.kind==="folder"?"/":"")+'</span>'+badge+'</span>'+
+    '<span class="meta hide">'+(n.kind==="folder" ? (n.children.length+" items") : n.mod)+'</span>'+
+    '<span class="meta hide">'+(n.kind==="folder" ? "folder" : n.kind)+'</span>'+
+    '<span class="meta r">'+(n.kind==="folder" ? "—" : n.size)+'</span>'+
+  '</button>';
+}
+
+function renderPane(){
+  var node = nodeAt(path);
+  var kids = node.children||[];
+  var html = '<div class="thead"><span>Name</span><span class="hide">Modified</span><span class="hide">Kind</span><span style="text-align:right">Size</span></div>';
+  kids.forEach(function(k){ html += rowHtml(k); });
+
+  if(path.length===0){
+    html += '<div class="note"><div class="kicker">note to whoever opens this</div>'+
+      '<h3>This is the working drive, not a pitch deck.</h3>'+
+      '<p>We got tired of writing case studies nobody believed, so we published the folder they came out of instead. The wins are in 01. The receipts are in 02. The money we lost is in 03, and that folder is the reason the rest of it is worth reading.</p>'+
+      '<p>Open anything. Nothing on this page is hidden from you — the raw exports ask for an email because we want to know who is checking our arithmetic, and because anyone willing to trade one is worth a conversation.</p></div>';
+    html += ctaHtml();
+  }
+  $("pane").innerHTML = html;
+  $("pane").scrollTop = 0;
+}
+
+function ctaHtml(){
+  return '<section class="cta">'+
+    '<div><h2>You have read the failures folder. Now you know what you would be buying.</h2>'+
+    '<p class="lede">Most agency calls start with both sides pretending. This one starts with you already knowing our margin, our worst quarter, and the name of a client who fired us.</p>'+
+    '<ul class="ticks">'+
+      '<li>We reply with a number, not a discovery call</li>'+
+      '<li>If you are one of the four in 06_who_were_wrong_for, we say so</li>'+
+      '<li>No sequence. One human reply, then you decide</li>'+
+    '</ul></div>'+
+    '<form id="ctaForm">'+
+      '<div class="field"><label for="f-name">Name</label><input id="f-name" name="name" required placeholder="Jamie Okafor"></div>'+
+      '<div class="field"><label for="f-email">Work email</label><input id="f-email" name="email" type="email" required placeholder="jamie@company.com"></div>'+
+      '<div class="field"><label for="f-spend">Current monthly ad spend</label>'+
+        '<select id="f-spend" name="spend" required>'+
+          '<option value="">Select…</option><option>Under $4K — we will tell you not to hire us</option>'+
+          '<option>$4K – $15K</option><option>$15K – $50K</option><option>$50K+</option></select></div>'+
+      '<div class="field"><label for="f-tried">What have you already tried that did not work?</label>'+
+        '<textarea id="f-tried" name="tried" placeholder="Be specific. This is the field we actually read."></textarea></div>'+
+      '<button class="submit" type="submit">Send it</button>'+
+      '<p class="finetext">Goes to one inbox. We reply inside two working days or we do not reply at all — no drip, no nurture track.</p>'+
+    '</form></section>';
+}
+
+function renderDrawer(n){
+  if(!n){ $("drawer").className="drawer"; $("drawer").innerHTML=""; return; }
+  var badge = n.gated ? '<span class="badge lock">RAW · email</span>'
+            : n.verified ? '<span class="badge ok">verified</span>'
+            : '<span class="badge no">unverified</span>';
+  var html = '<div class="dwrap"><div class="dhead">'+iconFor(n)+
+    '<div class="t"><div class="nm">'+n.name+'</div><div class="sub">'+n.mod+' · '+n.size+' · '+n.kind+'</div></div>'+
+    '<button class="dclose" id="dclose" aria-label="Close preview">×</button></div><div class="dbody">';
+  html += '<div>'+badge+'</div>';
+  if(n.claim) html += '<div class="claim"><div class="lbl">'+n.claim.lbl+'</div><div class="val">'+n.claim.val+'</div></div>';
+  (n.body||[]).forEach(function(p){ html += '<p>'+p+'</p>'; });
+  if(n.table){
+    html += '<div class="tablewrap"><table><thead><tr>';
+    n.table.cols.forEach(function(c){ html += '<th>'+c+'</th>'; });
+    html += '</tr></thead><tbody>';
+    n.table.rows.forEach(function(r){
+      html += '<tr>';
+      for(var i=0;i<n.table.cols.length;i++){
+        var cls = (i===n.table.cols.length-1 && r[n.table.cols.length]) ? ' class="'+r[n.table.cols.length]+'"' : '';
+        html += '<td'+cls+'>'+r[i]+'</td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div><div class="dfoot">';
+  if(n.gated && !captured){
+    html += '<button class="dl" id="dlBtn">Download the raw file</button>'+
+            '<div class="hint">one field · so we know who is checking</div>';
+  } else {
+    html += '<button class="dl" id="dlBtn">Download '+n.name+'</button>'+
+            '<div class="hint">'+(captured ? "unlocked for "+captured : "open · no email needed")+'</div>';
+  }
+  html += '</div></div>';
+  $("drawer").innerHTML = html;
+  $("drawer").className = "drawer open";
+  $("dclose").onclick = function(){ renderDrawer(null); };
+  $("dlBtn").onclick = function(){
+    if(n.gated && !captured){ openGate("artifact", n.name); }
+    else { log("download", n.name); alert("Sample prototype — wire this to your real file host."); }
+  };
+}
+
+function renderSignal(){
+  $("signalCt").textContent = events.length+" event"+(events.length===1?"":"s");
+  if(!events.length){
+    $("signalBody").innerHTML = '<div class="ev"><span class="empty">Nothing yet. Open a folder.</span></div>';
+    return;
+  }
+  $("signalBody").innerHTML = events.slice(0,40).map(function(e){
+    return '<div class="ev"><time>'+e.t+'</time><span><b>'+e.kind+'</b> '+e.detail+'</span></div>';
+  }).join("");
+}
+
+/* ============================================================
+   GATE
+   ============================================================ */
+function openGate(reason, detail){
+  var walled = reason==="entry";
+  $("modal").innerHTML =
+    '<h3 id="modalTitle">'+(walled ? "See the drive" : "Take the raw file")+'</h3>'+
+    '<p>'+(walled
+        ? "Everything is behind this form in walled mode — including the claims. Note what that costs you: nobody can share a page they cannot show you."
+        : "The claims are open and always will be. The raw exports ask for one field, because reproducing our arithmetic is the point and we would like to know who did.")+'</p>'+
+    '<form id="gateForm"><div class="field"><label for="g-email">Work email</label>'+
+    '<input id="g-email" type="email" required placeholder="jamie@company.com"></div>'+
+    '<button class="submit" type="submit">'+(walled ? "Unlock the drive" : "Send me the file")+'</button></form>'+
+    (walled
+      ? '<button class="skip" id="gateBack">← Switch back to open mode and see the difference</button>'
+      : '<button class="skip" id="gateSkip">No thanks — keep reading</button>');
+  $("scrim").className = "scrim open";
+  $("g-email").focus();
+  log("gate_shown", reason+(detail?" · "+detail:""));
+
+  $("gateForm").onsubmit = function(e){
+    e.preventDefault();
+    captured = $("g-email").value;
+    unlocked = true;
+    $("scrim").className = "scrim";
+    log("captured", captured+" via "+reason);
+    render();
+  };
+  if($("gateBack")) $("gateBack").onclick = function(){
+    gateMode = "artifacts";
+    $("gateBtn").setAttribute("aria-pressed","false");
+    $("gateBtn").textContent = "gate: artifacts only";
+    $("scrim").className = "scrim";
+    log("mode_change","artifacts · walled abandoned at the door");
+    render();
+  };
+  if($("gateSkip")) $("gateSkip").onclick = function(){
+    $("scrim").className="scrim";
+    log("gate_declined", detail||"");
+  };
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+document.addEventListener("click", function(e){
+  var go = e.target.closest("[data-go]");
+  if(go){
+    var v = go.getAttribute("data-go");
+    path = v ? v.split("|") : [];
+    log("folder_open", path.length ? path.join("/") : "root");
+    render();
+    return;
+  }
+  var op = e.target.closest("[data-open]");
+  if(op){
+    var name = op.getAttribute("data-open");
+    var node = nodeAt(path.concat([name]));
+    if(node.kind==="folder"){
+      path = path.concat([name]);
+      log("folder_open", path.join("/"));
+      render();
+    } else {
+      log("file_open", name);
+      renderDrawer(node);
+    }
+  }
+});
+
+$("gateBtn").onclick = function(){
+  gateMode = gateMode==="artifacts" ? "walled" : "artifacts";
+  this.setAttribute("aria-pressed", gateMode==="walled");
+  this.textContent = gateMode==="walled" ? "gate: everything (walled)" : "gate: artifacts only";
+  log("mode_change", gateMode);
+  if(gateMode==="walled" && !unlocked) openGate("entry");
+  render();
+};
+
+$("themeBtn").onclick = function(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  var next = cur==="dark" ? "light" : cur==="light" ? "dark"
+    : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme", next);
+};
+
+$("signalHead").onclick = function(e){
+  e.stopPropagation();
+  var open = $("signal").classList.toggle("open");
+  this.setAttribute("aria-expanded", open);
+  this.setAttribute("aria-pressed", open);
+};
+document.addEventListener("click", function(e){
+  if(!e.target.closest(".signalwrap")){
+    $("signal").classList.remove("open");
+    $("signalHead").setAttribute("aria-expanded","false");
+    $("signalHead").setAttribute("aria-pressed","false");
+  }
+});
+
+$("scrim").onclick = function(e){
+  if(e.target===this && gateMode!=="walled"){ this.className="scrim"; }
+};
+
+document.addEventListener("submit", function(e){
+  if(e.target.id!=="ctaForm") return;
+  e.preventDefault();
+  var d = new FormData(e.target);
+  log("form_submit", d.get("email")+" · "+d.get("spend"));
+  e.target.innerHTML = '<div class="field"><label>Sent</label></div>'+
+    '<p class="lede" style="margin:0">Sample prototype — no data left your browser. Point this form at your CRM or a webhook, and attach the intent events in the panel below so your first reply can name the folder they spent longest in.</p>';
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function render(){
+  var walledLock = (gateMode==="walled" && !unlocked);
+  document.querySelector(".body").style.filter = walledLock ? "blur(5px)" : "";
+  document.querySelector(".body").style.pointerEvents = walledLock ? "none" : "";
+  renderRail(); renderCrumbs(); renderPane();
+  if($("drawer").classList.contains("open")) { /* keep open */ }
+}
+render();
+renderSignal();
+log("session_start","landed on root · referrer unknown");
+})();
+</script>
